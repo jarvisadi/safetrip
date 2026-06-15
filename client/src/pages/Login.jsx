@@ -36,7 +36,7 @@ const Login = () => {
         navigate('/gov/portal');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      setError('Invalid email or password. Please check your credentials and try again.');
     } finally {
       setLoading(false);
     }
