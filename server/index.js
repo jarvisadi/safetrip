@@ -31,7 +31,11 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: [
+      'http://localhost:5173',
+      'https://safetrip-32mvwacrz-adityak1.vercel.app',
+      /\.vercel\.app$/
+    ],
     credentials: true
   }
 });
@@ -46,7 +50,11 @@ const activeTourists = new Map();
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: [
+    'http://localhost:5173',
+    'https://safetrip-32mvwacrz-adityak1.vercel.app',
+    /\.vercel\.app$/
+  ],
   credentials: true
 }));
 app.use(express.json());
