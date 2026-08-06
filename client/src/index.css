@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import 'leaflet/dist/leaflet.css';
-
 .leaflet-container {
   height: 100% !important;
   width: 100% !important;

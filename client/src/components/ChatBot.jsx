@@ -7,16 +7,43 @@ const ChatBot = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [userLocation, setUserLocation] = useState({ lat: null, lng: null });
+  const [locationError, setLocationError] = useState(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser');
+      return;
+    }
+    
     navigator.geolocation.getCurrentPosition(
-      (pos) => setUserLocation({ 
-        lat: pos.coords.latitude, 
-        lng: pos.coords.longitude 
-      }),
-      (err) => console.log('Location not available')
-    )
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+        console.log('Location fetched:', position.coords.latitude, position.coords.longitude);
+      },
+      (error) => {
+        console.error('Location error:', error);
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError('Location permission denied. Please allow location access.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationError('Location unavailable.');
+            break;
+          case error.TIMEOUT:
+            setLocationError('Location request timed out.');
+            break;
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
   }, []);
 
   useEffect(() => {
@@ -129,7 +156,16 @@ const ChatBot = () => {
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
-              <h2 className="text-lg font-semibold">SafeTrip Assistant</h2>
+              <div>
+                <h2 className="text-lg font-semibold">SafeTrip Assistant</h2>
+                {locationError ? (
+                  <p className="text-xs text-red-200">{locationError}</p>
+                ) : userLocation.lat && userLocation.lng ? (
+                  <p className="text-xs text-green-200">📍 Location active</p>
+                ) : (
+                  <p className="text-xs text-gray-200">Fetching location...</p>
+                )}
+              </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}

@@ -1,6 +1,6 @@
+import 'leaflet/dist/leaflet.css'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import 'leaflet/dist/leaflet.css'
 import App from './App.jsx'
 import { Toaster } from 'react-hot-toast'
 

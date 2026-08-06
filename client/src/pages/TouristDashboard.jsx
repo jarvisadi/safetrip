@@ -22,7 +22,7 @@ Icon.Default.mergeOptions({
 const TouristDashboard = () => {
   const [touristData, setTouristData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [currentLocation, setCurrentLocation] = useState(null);
+  const [userLocation, setUserLocation] = useState({ lat: null, lng: null });
   const [locationError, setLocationError] = useState(null);
   const [cameraPermission, setCameraPermission] = useState(null);
   const navigate = useNavigate();
@@ -34,13 +34,83 @@ const TouristDashboard = () => {
   }, []);
 
   useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser');
+      return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+        console.log('Location fetched:', position.coords.latitude, position.coords.longitude);
+      },
+      (error) => {
+        console.error('Location error:', error);
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError('Location permission denied. Please allow location access.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationError('Location unavailable.');
+            break;
+          case error.TIMEOUT:
+            setLocationError('Location request timed out.');
+            break;
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  }, []);
+
+  useEffect(() => {
     if (touristData && token) {
       // Connect to socket
       connectSocket(token);
       joinTouristRoom();
 
-      // Start location tracking
-      startLocationTracking();
+      // Send initial location if available
+      if (userLocation.lat && userLocation.lng) {
+        updateLocation({
+          lat: userLocation.lat,
+          lng: userLocation.lng,
+          accuracy: 0
+        });
+      }
+
+      // Update location every 10 seconds
+      locationIntervalRef.current = setInterval(() => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const location = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+              };
+              setUserLocation({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              });
+              updateLocation(location);
+            },
+            (error) => {
+              console.error('Error getting location:', error);
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0,
+            }
+          );
+        }
+      }, 10000);
 
       return () => {
         // Cleanup
@@ -51,62 +121,7 @@ const TouristDashboard = () => {
         disconnectSocket();
       };
     }
-  }, [touristData, token]);
-
-  const startLocationTracking = () => {
-    if (!navigator.geolocation) {
-      setLocationError('Geolocation is not supported by your browser');
-      return;
-    }
-
-    // Get initial location
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const location = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        };
-        setCurrentLocation(location);
-        sendLocationUpdate(location);
-      },
-      (error) => {
-        setLocationError('Unable to retrieve your location');
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
-
-    // Update location every 10 seconds
-    locationIntervalRef.current = setInterval(() => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-          };
-          setCurrentLocation(location);
-          sendLocationUpdate(location);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        }
-      );
-    }, 10000);
-  };
-
-  const sendLocationUpdate = (location) => {
-    updateLocation(location);
-  };
+  }, [touristData, token, userLocation]);
 
   const fetchTouristProfile = async () => {
     try {
@@ -168,17 +183,23 @@ const TouristDashboard = () => {
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-xl font-semibold mb-2">Current Location</h2>
               {locationError ? (
-                <p className="text-red-600">{locationError}</p>
-              ) : currentLocation ? (
+                <div className="flex items-center gap-2 text-red-600">
+                  <XCircle className="w-5 h-5" />
+                  <p>{locationError}</p>
+                </div>
+              ) : userLocation.lat && userLocation.lng ? (
                 <div>
+                  <div className="flex items-center gap-2 text-green-600 mb-2">
+                    <CheckCircle className="w-5 h-5" />
+                    <p>📍 Location active</p>
+                  </div>
                   <p className="text-gray-600 mb-2">
-                    Lat: {currentLocation.lat.toFixed(6)}, Lng: {currentLocation.lng.toFixed(6)}
+                    Lat: {userLocation.lat.toFixed(6)}, Lng: {userLocation.lng.toFixed(6)}
                   </p>
-                  <p className="text-gray-500 text-sm">Accuracy: ±{currentLocation.accuracy.toFixed(0)}m</p>
                   <div className="mt-4 h-48 rounded-lg overflow-hidden">
                     <MapContainer
                       key="tourist-map"
-                      center={[currentLocation.lat, currentLocation.lng]}
+                      center={[userLocation.lat, userLocation.lng]}
                       zoom={15}
                       style={{ height: '100%', width: '100%' }}
                     >
@@ -186,7 +207,7 @@ const TouristDashboard = () => {
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                       />
-                      <Marker position={[currentLocation.lat, currentLocation.lng]}>
+                      <Marker position={[userLocation.lat, userLocation.lng]}>
                         <Popup>You are here</Popup>
                       </Marker>
                     </MapContainer>
