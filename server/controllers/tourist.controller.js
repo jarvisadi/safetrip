@@ -89,13 +89,12 @@ export const getProfile = async (req, res) => {
   try {
     const userId = req.user.id;
     const result = await pool.query(
-      `SELECT 
-        u.id, u.name, u.email, u.phone,
-        t.id as tourist_id, t.photo_url, t.emergency_contact_name, 
-        t.emergency_contact_phone, t.emergency_contact_relation,
-        t.date_of_birth, t.nationality, t.home_address
+      `SELECT u.id, u.name, u.email, u.phone, u.role,
+              t.id as tourist_id, t.photo_url, t.qr_code,
+              t.emergency_contact_name, t.emergency_contact_phone,
+              t.is_active
        FROM users u
-       LEFT JOIN tourists t ON u.id = t.user_id
+       LEFT JOIN tourists t ON t.user_id = u.id
        WHERE u.id = $1`,
       [userId]
     );

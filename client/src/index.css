@@ -2,6 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
+* { font-family: 'Inter', system-ui, sans-serif; }
+
+.page-container {
+  min-height: 100vh;
+  background-color: #FAFAF9;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #E7E5E4;
+  padding: 24px;
+}
+
+.btn-primary {
+  background: #1B4332;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background: #14532D;
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background: #DC2626;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.risk-low { color: #16A34A; background: #D1FAE5; }
+.risk-medium { color: #D97706; background: #FEF3C7; }
+.risk-high { color: #DC2626; background: #FEE2E2; }
+
+.pulsing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #16A34A;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+
 .leaflet-container {
   height: 100% !important;
   width: 100% !important;

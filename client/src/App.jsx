@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import CompleteProfile from './pages/CompleteProfile';
@@ -11,12 +12,13 @@ import AdminAnalytics from './pages/AdminAnalytics';
 import GovPortal from './pages/GovPortal';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
+import AdminLayout from './components/AdminLayout';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route
@@ -59,8 +61,9 @@ function App() {
           path="/admin/map"
           element={
             <ProtectedRoute allowedRoles={['admin', 'govt']}>
-              <Navbar />
-              <AdminMap />
+              <AdminLayout>
+                <AdminMap />
+              </AdminLayout>
             </ProtectedRoute>
           }
         />
@@ -68,8 +71,9 @@ function App() {
           path="/admin/incidents"
           element={
             <ProtectedRoute allowedRoles={['admin', 'govt']}>
-              <Navbar />
-              <AdminIncidents />
+              <AdminLayout>
+                <AdminIncidents />
+              </AdminLayout>
             </ProtectedRoute>
           }
         />
@@ -77,8 +81,9 @@ function App() {
           path="/admin/analytics"
           element={
             <ProtectedRoute allowedRoles={['admin', 'govt']}>
-              <Navbar />
-              <AdminAnalytics />
+              <AdminLayout>
+                <AdminAnalytics />
+              </AdminLayout>
             </ProtectedRoute>
           }
         />
@@ -86,8 +91,9 @@ function App() {
           path="/gov/portal"
           element={
             <ProtectedRoute allowedRoles={['govt']}>
-              <Navbar />
-              <GovPortal />
+              <AdminLayout>
+                <GovPortal />
+              </AdminLayout>
             </ProtectedRoute>
           }
         />

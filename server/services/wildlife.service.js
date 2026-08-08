@@ -45,7 +45,7 @@ Use exactly this format:
 }`;
 
   const response = await groq.chat.completions.create({
-    model: 'llama-4-scout-17b-16e-instruct',
+    model: 'qwen/qwen3.6-27b',
     messages: [
       {
         role: 'user',
@@ -53,7 +53,7 @@ Use exactly this format:
           {
             type: 'image_url',
             image_url: {
-              url: `data:${mimeType};base64,${base64Image}`,
+              url: `data:image/jpeg;base64,${base64Image}`,
             },
           },
           {

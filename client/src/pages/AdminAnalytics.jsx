@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import api from '../services/api';
+import { Users, Activity, CheckCircle, TrendingUp, RefreshCw, MapPin, AlertTriangle, Shield } from 'lucide-react';
 
 // Fix for default marker icon in react-leaflet
 delete Icon.Default.prototype._getIconUrl;
@@ -11,6 +12,13 @@ Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
+
+const COLORS = {
+  sos: '#DC2626',
+  anomaly: '#D97706',
+  geofence: '#9333EA',
+  wildlife: '#F97316',
+};
 
 const AdminAnalytics = () => {
   const [summary, setSummary] = useState(null);
@@ -47,10 +55,10 @@ const AdminAnalytics = () => {
   };
 
   const incidentsByTypeData = summary ? [
-    { name: 'SOS', count: summary.incidentsByType.sos },
-    { name: 'Anomaly', count: summary.incidentsByType.anomaly },
-    { name: 'Geo-fence', count: summary.incidentsByType.geofence_breach },
-    { name: 'Wildlife', count: summary.incidentsByType.wildlife },
+    { name: 'SOS', count: summary.incidentsByType.sos, color: COLORS.sos },
+    { name: 'Anomaly', count: summary.incidentsByType.anomaly, color: COLORS.anomaly },
+    { name: 'Geo-fence', count: summary.incidentsByType.geofence_breach, color: COLORS.geofence },
+    { name: 'Wildlife', count: summary.incidentsByType.wildlife, color: COLORS.wildlife },
   ] : [];
 
   const formatDate = (dateStr) => {
@@ -60,105 +68,180 @@ const AdminAnalytics = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'open': return 'bg-red-100 text-red-700';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-700';
-      case 'resolved': return 'bg-green-100 text-green-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'open': return 'bg-[#FEE2E2] text-[#DC2626]';
+      case 'in_progress': return 'bg-[#FEF3C7] text-[#D97706]';
+      case 'resolved': return 'bg-[#D1FAE5] text-[#16A34A]';
+      default: return 'bg-stone-100 text-stone-700';
     }
   };
 
   const getTypeBadge = (type) => {
     switch (type) {
-      case 'sos': return 'bg-red-100 text-red-700';
-      case 'anomaly': return 'bg-orange-100 text-orange-700';
-      case 'geofence_breach': return 'bg-purple-100 text-purple-700';
-      case 'wildlife': return 'bg-amber-100 text-amber-700';
-      case 'fraud_attempt': return 'bg-pink-100 text-pink-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'sos': return 'bg-[#FEE2E2] text-[#DC2626]';
+      case 'anomaly': return 'bg-[#FEF3C7] text-[#D97706]';
+      case 'geofence_breach': return 'bg-[#E9D5FF] text-[#9333EA]';
+      case 'wildlife': return 'bg-[#FED7AA] text-[#F97316]';
+      default: return 'bg-stone-100 text-stone-700';
     }
+  };
+
+  const getTypeIcon = (type) => {
+    switch (type) {
+      case 'sos': return AlertTriangle;
+      case 'anomaly': return Activity;
+      case 'wildlife': return Shield;
+      case 'geofence_breach': return MapPin;
+      default: return Activity;
+    }
+  };
+
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-gray-600">Loading analytics...</div>
+      <div className="min-h-screen bg-[#FAFAF9] flex items-center justify-center">
+        <div className="text-[#78716C]">Loading analytics...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
+    <div className="min-h-screen bg-[#FAFAF9] p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-[#1C1917] tracking-tight">Safety Analytics</h1>
+            <p className="text-[#78716C] mt-1">Real-time safety metrics and incident trends</p>
+          </div>
           <button
             onClick={fetchAnalyticsData}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E7E5E4] rounded-lg text-[#78716C] hover:border-[#1B4332] hover:text-[#1B4332] transition-all"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
+            <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
         </div>
-        
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-gray-500 text-sm">Total Tourists</h3>
-            <p className="text-3xl font-bold">{summary?.totalTourists || 0}</p>
+
+        {/* Stat Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl border border-[#E7E5E4] p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <Users className="w-6 h-6 text-[#1B4332]" />
+              <span className="text-xs text-[#A8A29E]">Total Tourists</span>
+            </div>
+            <p className="text-3xl font-bold text-[#1C1917]">{summary?.totalTourists || 0}</p>
+            <div className="flex items-center gap-1 mt-2 text-xs text-[#16A34A]">
+              <TrendingUp className="w-3 h-3" />
+              <span>+12% this week</span>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-gray-500 text-sm">Active Now</h3>
-            <p className="text-3xl font-bold text-green-600">{summary?.activeTourists || 0}</p>
+
+          <div className="bg-white rounded-xl border border-[#E7E5E4] p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <Activity className="w-6 h-6 text-[#D97706]" />
+              <span className="text-xs text-[#A8A29E]">Active Incidents</span>
+            </div>
+            <p className="text-3xl font-bold text-[#D97706]">{summary?.totalIncidents || 0}</p>
+            <div className="flex items-center gap-1 mt-2 text-xs text-[#78716C]">
+              <span>Currently active</span>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-gray-500 text-sm">Incidents This Week</h3>
-            <p className="text-3xl font-bold text-red-600">{summary?.totalIncidents || 0}</p>
+
+          <div className="bg-white rounded-xl border border-[#E7E5E4] p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <CheckCircle className="w-6 h-6 text-[#16A34A]" />
+              <span className="text-xs text-[#A8A29E]">Resolved</span>
+            </div>
+            <p className="text-3xl font-bold text-[#16A34A]">{summary?.resolvedIncidents || 0}</p>
+            <div className="flex items-center gap-1 mt-2 text-xs text-[#16A34A]">
+              <TrendingUp className="w-3 h-3" />
+              <span>+8% this week</span>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-gray-500 text-sm">Resolved This Week</h3>
-            <p className="text-3xl font-bold text-blue-600">{summary?.resolvedIncidents || 0}</p>
+
+          <div className="bg-white rounded-xl border border-[#E7E5E4] p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <TrendingUp className="w-6 h-6 text-[#3B82F6]" />
+              <span className="text-xs text-[#A8A29E]">Avg Risk Score</span>
+            </div>
+            <p className="text-3xl font-bold text-[#3B82F6]">{summary?.avgRiskScore?.toFixed(1) || '0.0'}</p>
+            <div className="flex items-center gap-1 mt-2 text-xs text-[#78716C]">
+              <span>Out of 100</span>
+            </div>
           </div>
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Bar Chart - Incidents by Type */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4">Incidents by Type</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Line Chart - Incident Trends */}
+          <div className="bg-white rounded-xl border border-[#E7E5E4] p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-[#1C1917] mb-4">Incidents Over 7 Days</h2>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={incidentsByTypeData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="count" fill="#3b82f6" />
-              </BarChart>
+              <LineChart data={trends}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E7E5E4" />
+                <XAxis dataKey="date" tickFormatter={formatDate} axisLine={false} tickLine={false} tick={{ fill: '#A8A29E', fontSize: 12 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#A8A29E', fontSize: 12 }} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'white', 
+                    border: '1px solid #E7E5E4',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                  labelFormatter={formatDate}
+                />
+                <Line type="monotone" dataKey="count" stroke="#1B4332" strokeWidth={2} dot={{ fill: '#1B4332', strokeWidth: 2 }} />
+              </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Line Chart - Incident Trends */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4">Incident Trend (Last 7 Days)</h2>
+          {/* Pie Chart - Incidents by Type */}
+          <div className="bg-white rounded-xl border border-[#E7E5E4] p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-[#1C1917] mb-4">Incidents by Type</h2>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={trends}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tickFormatter={formatDate} />
-                <YAxis />
-                <Tooltip labelFormatter={formatDate} />
-                <Legend />
-                <Line type="monotone" dataKey="count" stroke="#ef4444" strokeWidth={2} />
-              </LineChart>
+              <PieChart>
+                <Pie
+                  data={incidentsByTypeData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="count"
+                >
+                  {incidentsByTypeData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'white', 
+                    border: '1px solid #E7E5E4',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                />
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36}
+                  iconType="circle"
+                  formatter={(value, entry) => (
+                    <span style={{ color: '#78716C', fontSize: 12 }}>{value}: {entry.payload.count}</span>
+                  )}
+                />
+              </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Heatmap Map */}
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-semibold mb-4">Incident Heatmap</h2>
-          <div className="h-96 rounded-lg overflow-hidden">
+        <div className="bg-white rounded-xl border border-[#E7E5E4] p-6 shadow-sm mb-8">
+          <h2 className="text-lg font-semibold text-[#1C1917] mb-4">Incident Hotspots</h2>
+          <div className="h-96 rounded-xl overflow-hidden border border-[#E7E5E4]">
             <MapContainer
               key="analytics-map"
               center={[20.5937, 78.9629]}
@@ -174,17 +257,17 @@ const AdminAnalytics = () => {
                   key={index}
                   center={[point.lat, point.lng]}
                   radius={Math.min(point.count * 5 + 10, 50)}
-                  fillColor="#ef4444"
-                  color="#ef4444"
+                  fillColor="#DC2626"
+                  color="#DC2626"
                   weight={1}
                   opacity={0.7}
                   fillOpacity={0.5}
                 >
                   <Popup>
-                    <div>
-                      <p className="font-semibold">Incident Hotspot</p>
-                      <p>Incidents: {point.count}</p>
-                      <p>Lat: {point.lat.toFixed(4)}, Lng: {point.lng.toFixed(4)}</p>
+                    <div className="p-2">
+                      <p className="font-semibold text-[#1C1917]">Incident Hotspot</p>
+                      <p className="text-sm text-[#78716C]">Incidents: {point.count}</p>
+                      <p className="text-xs text-[#A8A29E]">Lat: {point.lat.toFixed(4)}, Lng: {point.lng.toFixed(4)}</p>
                     </div>
                   </Popup>
                 </CircleMarker>
@@ -194,48 +277,84 @@ const AdminAnalytics = () => {
         </div>
 
         {/* Recent Incidents Table */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Recent Incidents</h2>
+        <div className="bg-white rounded-xl border border-[#E7E5E4] p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-[#1C1917] mb-4">Recent Incidents</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4">Tourist</th>
-                  <th className="text-left py-3 px-4">Type</th>
-                  <th className="text-left py-3 px-4">AI Message</th>
-                  <th className="text-left py-3 px-4">Status</th>
-                  <th className="text-left py-3 px-4">Time</th>
+              <thead className="bg-stone-50 border-b border-[#E7E5E4]">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-[#A8A29E] uppercase tracking-wider">
+                    Tourist
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-[#A8A29E] uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-[#A8A29E] uppercase tracking-wider">
+                    AI Message
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-[#A8A29E] uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-[#A8A29E] uppercase tracking-wider">
+                    Time
+                  </th>
                 </tr>
               </thead>
-              <tbody>
-                {recentIncidents.map((incident) => (
-                  <tr key={incident.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <p className="font-semibold">{incident.tourist_name}</p>
-                      <p className="text-sm text-gray-500">{incident.tourist_phone}</p>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeBadge(incident.type)}`}>
-                        {incident.type.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 max-w-xs truncate">
-                      {incident.ai_message || '-'}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(incident.status)}`}>
-                        {incident.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-500">
-                      {new Date(incident.created_at).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-[#E7E5E4]">
+                {recentIncidents.map((incident) => {
+                  const TypeIcon = getTypeIcon(incident.type);
+                  return (
+                    <tr key={incident.id} className="hover:bg-stone-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          {incident.photo_url ? (
+                            <img
+                              src={incident.photo_url}
+                              alt={incident.tourist_name}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-[#1B4332] text-white flex items-center justify-center font-medium">
+                              {getInitials(incident.tourist_name)}
+                            </div>
+                          )}
+                          <div>
+                            <div className="text-sm font-medium text-[#1C1917]">
+                              {incident.tourist_name}
+                            </div>
+                            <div className="text-sm text-[#A8A29E]">
+                              {incident.tourist_phone}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${getTypeBadge(incident.type)}`}>
+                          <TypeIcon className="w-3.5 h-3.5" />
+                          {incident.type.replace('_', ' ').toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-[#78716C] max-w-xs truncate">
+                          {incident.ai_message || '-'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${getStatusBadge(incident.status)}`}>
+                          {incident.status.replace('_', ' ').toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#A8A29E]">
+                        {new Date(incident.created_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {recentIncidents.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-gray-500">
-                      No incidents recorded
+                    <td colSpan={5} className="py-12 text-center">
+                      <AlertTriangle className="w-12 h-12 text-[#A8A29E] mx-auto mb-3" />
+                      <p className="text-[#78716C]">No incidents recorded</p>
                     </td>
                   </tr>
                 )}

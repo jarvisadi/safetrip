@@ -33,21 +33,24 @@ const TouristProfile = () => {
 
   const fetchProfile = async () => {
     try {
-      const response = await api.get('/tourists/profile');
-      setProfile(response.data);
+      const response = await api.get('/tourists/me');
+      console.log('Profile response:', response.data);
+      const profileData = response.data;
+      setProfile(profileData);
       setFormData({
-        name: response.data.name || '',
-        phone: response.data.phone || '',
-        email: response.data.email || '',
-        date_of_birth: response.data.date_of_birth || '',
-        nationality: response.data.nationality || '',
-        home_address: response.data.home_address || '',
-        emergency_contact_name: response.data.emergency_contact_name || '',
-        emergency_contact_phone: response.data.emergency_contact_phone || '',
-        emergency_contact_relation: response.data.emergency_contact_relation || 'Father',
+        name: profileData.name || '',
+        phone: profileData.phone || '',
+        email: profileData.email || '',
+        date_of_birth: profileData.date_of_birth || '',
+        nationality: profileData.nationality || '',
+        home_address: profileData.home_address || '',
+        emergency_contact_name: profileData.emergency_contact_name || '',
+        emergency_contact_phone: profileData.emergency_contact_phone || '',
+        emergency_contact_relation: profileData.emergency_contact_relation || 'Father',
       });
     } catch (error) {
       console.error('Error fetching profile:', error);
+      console.error('Profile error:', error.response?.data);
       toast.error('Failed to load profile');
     } finally {
       setLoading(false);

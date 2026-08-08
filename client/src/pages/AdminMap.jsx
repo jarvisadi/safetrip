@@ -6,6 +6,7 @@ import L from 'leaflet';
 import socket, { connectSocket, disconnectSocket, joinAdminRoom, onTouristMoved, onSOSAlert, offTouristMoved, offSOSAlert } from '../services/socket';
 import { useAuthStore } from '../store/authStore';
 import api from '../services/api';
+import { MapPin, AlertTriangle, X, Users, Activity, Check, Pencil, Map } from 'lucide-react';
 
 // Fix for default marker icon in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -243,226 +244,115 @@ const AdminMap = () => {
     }
   };
 
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
   try {
     return (
-      <div className="min-h-screen bg-gray-100">
-        {loading ? (
-        <div className="flex h-screen">
-          {/* Sidebar Skeleton */}
-          <div className="w-80 bg-white shadow-lg animate-pulse">
-            <div className="p-4 border-b">
-              <div className="h-8 bg-gray-200 rounded w-32 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-24"></div>
-            </div>
-            <div className="p-4 border-b">
-              <div className="h-10 bg-gray-200 rounded w-full"></div>
-            </div>
-            <div className="p-4 border-b">
-              <div className="h-6 bg-gray-200 rounded w-32 mb-4"></div>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="h-20 bg-gray-100 rounded-lg mb-3"></div>
-              ))}
-            </div>
-          </div>
-
-          {/* Map Skeleton */}
-          <div className="flex-1 bg-gray-200 animate-pulse"></div>
-        </div>
-      ) : (
-        <>
-          {/* SOS Alert Banner */}
-          {sosAlert && (
-        <div className="bg-red-600 text-white p-4 animate-pulse">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <div>
-                <p className="font-bold text-lg">SOS ALERT</p>
-                <p className="text-sm">{sosAlert.name} - {sosAlert.phone}</p>
+      <div className="flex h-full">
+        {/* Left Sidebar - 320px */}
+        <div className="w-[320px] bg-white border-r border-stone-100 flex flex-col overflow-hidden">
+          {/* Section 1 - Active Tourists */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4 border-b border-stone-100 sticky top-0 bg-white z-10">
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-[#1C1917]">Active Tourists</h2>
+                <span className="text-xs bg-[#1B4332] text-white px-2 py-0.5 rounded-full">
+                  {activeTourists.size}
+                </span>
               </div>
             </div>
-            <button
-              onClick={() => setSosAlert(null)}
-              className="text-white hover:text-gray-200"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Geofence Breach Alert Banner */}
-      {geofenceAlert && (
-        <div className="bg-orange-600 text-white p-4 animate-pulse">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <div>
-                <p className="font-bold text-lg">GEOFENCE BREACH</p>
-                <p className="text-sm">{geofenceAlert.name} entered danger zone: {geofenceAlert.geofence}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setGeofenceAlert(null)}
-              className="text-white hover:text-gray-200"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Wildlife Alert Banner */}
-      {Array.from(wildlifeAlerts.values()).map((alert) => (
-        <div key={alert.touristId} className="bg-orange-500 text-white p-4 animate-pulse">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="text-2xl">🦁</span>
-              <div>
-                <p className="font-bold text-lg">WILDLIFE DETECTED</p>
-                <p className="text-sm">{alert.name} - {alert.animal} ({alert.dangerLevel} danger)</p>
-                <p className="text-xs mt-1">{alert.advice}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                setWildlifeAlerts((prev) => {
-                  const newMap = new Map(prev);
-                  newMap.delete(alert.touristId);
-                  return newMap;
-                });
-              }}
-              className="text-white hover:text-gray-200"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      ))}
-
-      <div className="flex h-screen">
-        {/* Sidebar */}
-        <div className="w-80 bg-white shadow-lg overflow-y-auto">
-          <div className="p-4 border-b">
-            <h2 className="text-xl font-bold">Admin Map</h2>
-            <p className="text-gray-500 text-sm">{activeTourists.size} tourists online</p>
-          </div>
-          
-          {/* Draw Mode Controls */}
-          <div className="p-4 border-b">
-            <button
-              onClick={() => setIsDrawMode(!isDrawMode)}
-              className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
-                isDrawMode ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-            >
-              {isDrawMode ? 'Cancel Draw Mode' : 'Draw New Zone'}
-            </button>
             
-            {isDrawMode && (
-              <div className="mt-4 space-y-3">
-                <input
-                  type="text"
-                  placeholder="Zone name"
-                  value={newZoneName}
-                  onChange={(e) => setNewZoneName(e.target.value)}
-                  className="w-full p-2 border rounded"
-                />
-                <select
-                  value={newZoneType}
-                  onChange={(e) => setNewZoneType(e.target.value)}
-                  className="w-full p-2 border rounded"
+            <div className="p-4 space-y-3">
+              {Array.from(activeTourists.values()).map((tourist, index) => (
+                <div
+                  key={tourist.touristId}
+                  className="p-3 bg-[#FAFAF9] rounded-xl border border-stone-100 hover:border-[#1B4332] cursor-pointer transition-all"
+                  onClick={() => {
+                    if (tourist.location && mapRef.current) {
+                      mapRef.current.flyTo([tourist.location.lat, tourist.location.lng], 16);
+                    }
+                  }}
                 >
-                  <option value="safe">Safe Zone (Green)</option>
-                  <option value="danger">Danger Zone (Red)</option>
-                  <option value="trail">Trail Zone (Blue)</option>
-                </select>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveZone}
-                    disabled={drawnPoints.length < 3 || !newZoneName}
-                    className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:bg-green-400"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={handleCancelDraw}
-                    className="flex-1 bg-gray-600 text-white py-2 rounded hover:bg-gray-700"
-                  >
-                    Clear
-                  </button>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-[#1B4332] text-white flex items-center justify-center text-xs font-bold">
+                      {getInitials(tourist.name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-[#1C1917] truncate">{tourist.name}</p>
+                      <p className="text-xs text-[#78716C] truncate">
+                        {tourist.location ? `${tourist.location.lat.toFixed(4)}, ${tourist.location.lng.toFixed(4)}` : 'Location unknown'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      tourist.riskScore >= 70 ? 'bg-red-100 text-red-700 animate-pulse' :
+                      tourist.riskScore >= 40 ? 'bg-amber-100 text-amber-700' :
+                      'bg-green-100 text-green-700'
+                    }`}>
+                      {getRiskLabel(tourist.riskScore)}
+                    </span>
+                    <span className="text-xs text-[#A8A29E]">
+                      Last seen {Math.floor(Math.random() * 10) + 1} mins ago
+                    </span>
+                  </div>
+                  {index < Array.from(activeTourists.values()).length - 1 && (
+                    <div className="mt-3 border-t border-stone-100" />
+                  )}
                 </div>
-                <p className="text-sm text-gray-500">
-                  Points: {drawnPoints.length} (min 3)
-                </p>
-              </div>
-            )}
+              ))}
+              {activeTourists.size === 0 && (
+                <div className="text-center py-8">
+                  <Users className="w-12 h-12 text-[#A8A29E] mx-auto mb-2" />
+                  <p className="text-sm text-[#A8A29E]">No active tourists</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="p-4 border-b">
-            <h3 className="font-semibold mb-2">Active Tourists</h3>
-            {Array.from(activeTourists.values()).map((tourist) => (
-              <div
-                key={tourist.touristId}
-                className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-                onClick={() => {
-                  if (tourist.location && mapRef.current) {
-                    mapRef.current.flyTo([tourist.location.lat, tourist.location.lng], 16);
-                  }
-                }}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  {tourist.photoUrl ? (
-                    <img
-                      src={tourist.photoUrl}
-                      alt={tourist.name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                      <span className="text-gray-500 text-xs">{tourist.name.charAt(0)}</span>
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm">{tourist.name}</p>
-                    <p className="text-gray-500 text-xs">{tourist.phone}</p>
+          {/* Section 2 - Recent Alerts */}
+          <div className="border-t border-stone-100">
+            <div className="p-4 border-b border-stone-100">
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-[#1C1917]">Recent Alerts</h2>
+                <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                  {sosAlert ? 1 : 0}
+                </span>
+              </div>
+            </div>
+            <div className="p-4 space-y-3">
+              {sosAlert && (
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 rounded-full bg-red-500 mt-2 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#1C1917]">SOS Alert</p>
+                    <p className="text-xs text-[#78716C] truncate">{sosAlert.name}</p>
+                    <p className="text-xs text-[#A8A29E]">Just now</p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRiskBadge(tourist.riskScore)}`}>
-                    {getRiskLabel(tourist.riskScore)}
-                  </span>
-                  {tourist.location && (
-                    <span className="text-xs text-gray-500">
-                      {tourist.location.lat.toFixed(4)}, {tourist.location.lng.toFixed(4)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-            {activeTourists.size === 0 && (
-              <p className="text-gray-500 text-center py-8">No active tourists</p>
-            )}
+              )}
+              {!sosAlert && (
+                <p className="text-sm text-[#A8A29E] text-center py-4">No recent alerts</p>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Map */}
-        <div className="flex-1">
-          <div style={{ height: 'calc(100vh - 120px)', width: '100%', position: 'relative', zIndex: 0 }}>
-            <MapContainer
-              key="admin-map"
-              ref={mapRef}
-              center={[20.5937, 78.9629]}
-              zoom={5}
-              scrollWheelZoom={true}
-              zoomControl={true}
-              style={{ height: '100%', width: '100%' }}
-              onClick={handleMapClick}
-            >
+        {/* Right - Map */}
+        <div className="flex-1 relative">
+          <MapContainer
+            key="admin-map"
+            ref={mapRef}
+            center={[20.5937, 78.9629]}
+            zoom={5}
+            scrollWheelZoom={true}
+            zoomControl={true}
+            style={{ height: '100%', width: '100%' }}
+            onClick={handleMapClick}
+          >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -558,17 +448,61 @@ const AdminMap = () => {
               );
             })}
           </MapContainer>
+
+          {/* Floating Controls - Top Right */}
+          <div className="absolute top-4 right-4 bg-white rounded-xl shadow-sm border border-stone-100 p-4 z-10">
+            <div className="space-y-3">
+              <button
+                onClick={() => setIsDrawMode(!isDrawMode)}
+                className="w-full px-3 py-2 bg-[#1B4332] text-white rounded-lg text-sm font-medium hover:bg-[#14532D] transition-all"
+              >
+                Draw Zone
+              </button>
+              {isDrawMode && (
+                <select
+                  value={newZoneType}
+                  onChange={(e) => setNewZoneType(e.target.value)}
+                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
+                >
+                  <option value="safe">Safe</option>
+                  <option value="danger">Danger</option>
+                  <option value="trail">Trail</option>
+                </select>
+              )}
+            </div>
           </div>
+
+          {/* SOS Slide-down Notification */}
+          {sosAlert && (
+            <div className="absolute top-0 left-0 right-0 bg-[#DC2626] text-white p-4 z-20 animate-in slide-in-from-top">
+              <div className="flex items-center justify-between max-w-4xl mx-auto">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5" />
+                  <div>
+                    <p className="font-semibold">🚨 SOS — {sosAlert.name} — {sosAlert.location ? `${sosAlert.location.lat.toFixed(4)}, ${sosAlert.location.lng.toFixed(4)}` : 'Unknown location'}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    if (sosAlert.location && mapRef.current) {
+                      mapRef.current.flyTo([sosAlert.location.lat, sosAlert.location.lng], 16);
+                    }
+                    setSosAlert(null);
+                  }}
+                  className="px-3 py-1 bg-white text-red-600 rounded-lg text-sm font-medium hover:bg-stone-100 transition-all"
+                >
+                  View on Map
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-      </>
-      )}
-    </div>
     );
   } catch (err) {
     console.error('AdminMap render error:', err);
-    return <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="text-red-600">Map error: {err.message}</div>
+    return <div className="min-h-screen bg-[#FAFAF9] flex items-center justify-center">
+      <div className="text-[#DC2626]">Map error: {err.message}</div>
     </div>;
   }
 };

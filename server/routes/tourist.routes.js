@@ -31,20 +31,7 @@ router.post(
 );
 
 // Get my tourist profile
-router.get('/me', authenticateToken, async (req, res) => {
-  try {
-    const result = await pool.query(
-      'SELECT t.*, u.name, u.email, u.phone FROM tourists t JOIN users u ON t.user_id = u.id WHERE t.user_id = $1',
-      [req.user.id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Tourist profile not found' });
-    }
-    res.json(result.rows[0]);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+router.get('/me', authenticateToken, getProfile);
 
 // Get tourist profile by ID
 router.get('/:id', authenticateToken, getTouristProfile);

@@ -13,6 +13,7 @@ export const useAuthStore = create((set) => ({
   logout: () => {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    localStorage.removeItem('safetrip_chat_history');
     socket.disconnect();
     set({ user: null, token: null, isAuthenticated: false });
   },

@@ -11,6 +11,7 @@ const WildlifeReport = () => {
   const [uploadedImage, setUploadedImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [mode, setMode] = useState('camera'); // 'camera' or 'upload'
+  const [cameraReady, setCameraReady] = useState(false);
   const webcamRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -18,6 +19,7 @@ const WildlifeReport = () => {
     const imageSrc = webcamRef.current.getScreenshot();
     setCapturedImage(imageSrc);
     setShowCamera(false);
+    setCameraReady(false);
   };
 
   const handleAnalyze = async () => {
@@ -39,9 +41,25 @@ const WildlifeReport = () => {
           },
         });
       } else {
-        const base64Data = capturedImage.split(',')[1];
+        // Compress image before sending
+        const canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 480;
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = capturedImage;
+        });
+        
+        ctx.drawImage(img, 0, 0, 640, 480);
+        const compressed = canvas.toDataURL('image/jpeg', 0.6);
+        const base64 = compressed.split(',')[1];
+        
         response = await api.post('/wildlife/detect/camera', {
-          image: base64Data,
+          image: base64,
         });
       }
 
@@ -182,27 +200,46 @@ const WildlifeReport = () => {
 
   if (showCamera) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Report Wildlife Sighting</h2>
-        <div className="w-full h-64 rounded-lg overflow-hidden border-2 border-gray-200 mb-4">
+      <div className="bg-white rounded-xl border border-[#E7E5E4] p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-[#1C1917] mb-4">Report Wildlife Sighting</h2>
+        <div style={{ width: '100%', position: 'relative' }} className="mb-4">
+          {!cameraReady && (
+            <div className="flex items-center justify-center h-[300px] bg-stone-100 rounded-xl">
+              <p className="text-stone-500 text-sm">Starting camera...</p>
+            </div>
+          )}
           <Webcam
             ref={webcamRef}
             audio={false}
             screenshotFormat="image/jpeg"
-            className="w-full h-full object-cover"
-            mirrored={true}
+            screenshotQuality={0.8}
+            videoConstraints={{
+              width: 1280,
+              height: 720,
+              facingMode: 'environment'
+            }}
+            onUserMedia={() => setCameraReady(true)}
+            onUserMediaError={(err) => console.error('Camera error:', err)}
+            style={{
+              width: '100%',
+              height: '300px',
+              objectFit: 'cover',
+              borderRadius: '12px',
+              display: cameraReady ? 'block' : 'none'
+            }}
           />
         </div>
         <div className="flex gap-4">
           <button
             onClick={handleCapture}
-            className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+            disabled={!cameraReady}
+            className="flex-1 bg-[#1B4332] text-white py-3 rounded-lg font-semibold hover:bg-[#14532D] transition-all disabled:bg-stone-300 disabled:text-stone-500 disabled:cursor-not-allowed"
           >
             Capture Photo
           </button>
           <button
             onClick={handleReset}
-            className="flex-1 bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors"
+            className="flex-1 bg-stone-200 text-[#78716C] py-3 rounded-lg font-semibold hover:bg-stone-300 transition-all"
           >
             Cancel
           </button>

@@ -10,6 +10,7 @@ const FaceVerification = ({ registrationPhotoUrl, touristId }) => {
   const [result, setResult] = useState(null);
   const [distance, setDistance] = useState(null);
   const [cameraOn, setCameraOn] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
   const webcamRef = useRef(null);
   const registrationImageRef = useRef(null);
 
@@ -138,69 +139,87 @@ const FaceVerification = ({ registrationPhotoUrl, touristId }) => {
     }
   };
 
-  if (!modelsLoaded) {
-    return (
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Check-in Verification</h2>
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <span className="ml-4 text-gray-600">Loading face recognition models...</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold mb-4">Check-in Verification</h2>
+    <div className="bg-white rounded-xl border border-[#E7E5E4] p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg font-semibold text-[#1C1917]">Check-in Verification</h2>
+        {!modelsLoaded && (
+          <div className="flex items-center gap-2 text-xs text-[#A8A29E]">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#1B4332]"></div>
+            <span>Loading AI models...</span>
+          </div>
+        )}
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {/* Registration Photo */}
         <div>
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Registration Photo</h3>
+          <h3 className="text-sm font-medium text-[#A8A29E] uppercase tracking-wide mb-2">Registration Photo</h3>
           {registrationPhotoUrl ? (
             <img
               ref={registrationImageRef}
               src={registrationPhotoUrl}
               alt="Registration"
-              className="w-full h-64 object-cover rounded-lg border-2 border-gray-200"
+              className="w-full h-64 object-cover rounded-xl border border-[#E7E5E4]"
               crossOrigin="anonymous"
             />
           ) : (
-            <div className="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-gray-200">
-              <span className="text-gray-500">No registration photo</span>
+            <div className="w-full h-64 bg-stone-100 rounded-xl border border-[#E7E5E4] flex items-center justify-center">
+              <span className="text-[#78716C]">No registration photo</span>
             </div>
           )}
         </div>
 
         {/* Webcam Feed */}
         <div>
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Live Camera</h3>
-          <div className="w-full h-64 rounded-lg overflow-hidden border-2 border-gray-200">
+          <h3 className="text-sm font-medium text-[#A8A29E] uppercase tracking-wide mb-2">Live Camera</h3>
+          <div className="w-full h-64 rounded-xl overflow-hidden border border-[#E7E5E4]">
             {cameraOn ? (
-              <Webcam
-                ref={webcamRef}
-                audio={false}
-                screenshotFormat="image/jpeg"
-                className="w-full h-full object-cover"
-                mirrored={true}
-              />
+              <>
+                {!cameraReady && (
+                  <div className="flex items-center justify-center h-full bg-stone-100">
+                    <p className="text-stone-500 text-sm">Starting camera...</p>
+                  </div>
+                )}
+                <Webcam
+                  ref={webcamRef}
+                  audio={false}
+                  screenshotFormat="image/jpeg"
+                  screenshotQuality={0.6}
+                  videoConstraints={{
+                    width: 640,
+                    height: 480,
+                    facingMode: 'user'
+                  }}
+                  onUserMedia={() => setCameraReady(true)}
+                  onUserMediaError={(err) => console.error('Camera error:', err)}
+                  className="w-full h-full object-cover"
+                  mirrored={true}
+                  style={{ display: cameraReady ? 'block' : 'none' }}
+                />
+              </>
             ) : (
-              <div className="w-full h-full bg-gray-100 flex flex-col items-center justify-center">
-                <svg className="w-16 h-16 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-full h-full bg-stone-50 flex flex-col items-center justify-center">
+                <svg className="w-16 h-16 text-[#A8A29E] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                <p className="text-gray-500 text-sm text-center px-4">Camera is off - click Open Camera to start</p>
+                <p className="text-[#78716C] text-sm text-center px-4">Camera is off - click Open Camera to start</p>
               </div>
             )}
           </div>
           <button
-            onClick={() => setCameraOn(!cameraOn)}
-            className={`mt-3 w-full py-2 rounded-lg font-semibold transition-colors ${
+            onClick={() => {
+              setCameraOn(!cameraOn);
+              if (!cameraOn) {
+                setCameraReady(false);
+              }
+            }}
+            disabled={!modelsLoaded}
+            className={`mt-3 w-full py-2 rounded-lg font-semibold transition-all ${
               cameraOn
-                ? 'bg-red-600 text-white hover:bg-red-700'
-                : 'bg-green-600 text-white hover:bg-green-700'
-            }`}
+                ? 'bg-[#DC2626] text-white hover:bg-[#B91C1C]'
+                : 'bg-[#1B4332] text-white hover:bg-[#14532D]'
+            } disabled:bg-stone-300 disabled:text-stone-500 disabled:cursor-not-allowed`}
           >
             {cameraOn ? (
               <span className="flex items-center justify-center gap-2">
@@ -225,8 +244,8 @@ const FaceVerification = ({ registrationPhotoUrl, touristId }) => {
       {cameraOn && (
         <button
           onClick={handleVerify}
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-blue-400"
+          disabled={loading || !modelsLoaded}
+          className="w-full bg-[#1B4332] text-white py-3 rounded-lg font-semibold hover:bg-[#14532D] transition-all disabled:bg-stone-300 disabled:text-stone-500 disabled:cursor-not-allowed"
         >
           {loading ? 'Verifying...' : 'Verify My Identity'}
         </button>
@@ -236,12 +255,12 @@ const FaceVerification = ({ registrationPhotoUrl, touristId }) => {
       {result && (
         <div className={`mt-4 p-4 rounded-lg ${
           result === 'verified'
-            ? 'bg-green-100 text-green-700'
+            ? 'bg-[#D1FAE5] text-[#16A34A]'
             : result === 'failed'
-            ? 'bg-red-100 text-red-700'
+            ? 'bg-[#FEE2E2] text-[#DC2626]'
             : result === 'no_face'
-            ? 'bg-amber-100 text-amber-700'
-            : 'bg-red-100 text-red-700'
+            ? 'bg-[#FEF3C7] text-[#D97706]'
+            : 'bg-[#FEE2E2] text-[#DC2626]'
         }`}>
           <div className="flex items-center gap-3">
             {result === 'verified' && (
