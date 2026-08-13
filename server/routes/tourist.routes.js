@@ -1,6 +1,6 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { completeProfile, getTouristProfile, getMyTouristProfile, getTouristCard, getProfile, updateProfile } from '../controllers/tourist.controller.js';
+import { completeProfile, getTouristProfile, getMyTouristProfile, getTouristCard, getProfile, updateProfile, getActivity } from '../controllers/tourist.controller.js';
 import { authenticateToken, authorizeRoles } from '../middleware/auth.middleware.js';
 import upload from '../middleware/upload.middleware.js';
 import pool from '../config/db.js';
@@ -44,5 +44,8 @@ router.get('/profile', authenticateToken, getProfile);
 
 // Update profile
 router.patch('/profile', authenticateToken, upload.single('photo'), updateProfile);
+
+// Get activity logs
+router.get('/activity', authenticateToken, getActivity);
 
 export default router;

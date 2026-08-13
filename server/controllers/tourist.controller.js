@@ -201,3 +201,53 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({ error: 'Failed to update profile' });
   }
 };
+
+export const getActivity = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get tourist_id from users table
+    const touristResult = await pool.query(
+      'SELECT id FROM tourists WHERE user_id = $1',
+      [userId]
+    );
+    
+    if (touristResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Tourist profile not found' });
+    }
+    
+    const touristId = touristResult.rows[0].id;
+    
+    // Fetch activity logs combining location logs and incidents
+    const activityResult = await pool.query(
+      `SELECT 
+        'location' as type,
+        'Location verified' as message,
+        logged_at as time
+       FROM location_logs 
+       WHERE tourist_id = $1
+       ORDER BY logged_at DESC 
+       LIMIT 3
+       
+       UNION ALL
+       
+       SELECT
+        'incident' as type,
+        type as message,
+        created_at as time  
+       FROM incidents
+       WHERE tourist_id = $1
+       ORDER BY created_at DESC
+       LIMIT 2
+       
+       ORDER BY time DESC
+       LIMIT 5`,
+      [touristId]
+    );
+    
+    res.json(activityResult.rows);
+  } catch (error) {
+    console.error('Error fetching activity:', error);
+    res.status(500).json({ error: 'Failed to fetch activity' });
+  }
+};
